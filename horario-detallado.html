@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horario Semanal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2f2f36; --muted:#7a7a83; --line:#e3e3e6; --dot:#ececef;
+    --off:#f2f2f2; --today:#fdf7e4; --row:34px;
+    --teo:#8fe3ea; --pra:#2a3a7c;
+    --tesis:#f0a030; --aya:#e5577f; --promo:#7d5cf0; --seg:#1f9aa5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#fff;color:var(--ink);font-family:"Montserrat",system-ui,sans-serif;padding:28px 16px 48px}
+  .wrap{max-width:1600px;margin:0 auto}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-weight:500;font-size:22px}
+  h1 span{font-weight:300;color:var(--muted);font-size:14px;margin-left:10px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+  .legend .box{border-radius:3px;width:14px;height:10px;background:#fff;vertical-align:-1px}
+  .print{font:500 12px "Montserrat",sans-serif;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+  .print:hover{background:#f7f7f8}
+
+  .scroller{overflow-x:auto;border:1px solid var(--line);-webkit-overflow-scrolling:touch}
+  .cal{display:grid;grid-template-columns:62px repeat(7,minmax(140px,1fr));grid-template-rows:52px repeat(24,var(--row));min-width:1040px;position:relative}
+  .head{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:13px;color:#5d5d66;border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+  .head small{font-size:10.5px;color:#a0a0a8}
+  .head.corner{border-left:none}
+  .head.is-today{color:var(--ink);font-weight:600}
+  .head.is-today small{color:#c9971a;font-weight:600}
+  .time{font-size:11px;color:#5d5d66;text-align:right;padding:6px 5px 0 0;border-top:1px solid var(--line);white-space:nowrap}
+  .time.half{border-top:none}
+  .cell{border-left:1px solid var(--line)}
+  .cell.hour{border-top:1px solid var(--line)}
+  .cell.half{border-top:1px dotted var(--dot)}
+  .first{border-top:none!important}
+  .shade{grid-row:2/26;z-index:0}
+  .shade.today{background:var(--today)}
+  .shade.off{background:var(--off);margin-left:7px}
+
+  .ev{z-index:2;margin:4px 8px;background:#fff;border:2px solid var(--b);border-radius:3px;padding:8px 10px 8px 26px;text-align:left;font-family:inherit;color:var(--ink);cursor:pointer;overflow:hidden;position:relative;display:flex;flex-direction:column;gap:3px;transition:box-shadow .15s, transform .15s}
+  .ev::before{content:"";position:absolute;left:10px;top:12px;width:9px;height:9px;border-radius:50%;background:var(--c)}
+  .ev:hover{box-shadow:0 8px 18px -10px rgba(0,0,0,.35);transform:translateY(-1px)}
+  .ev:focus-visible{outline:2px solid var(--c);outline-offset:2px}
+  .ev .h{font-size:11px;font-weight:700}
+  .ev .n{font-size:11px;font-weight:400;text-transform:uppercase;line-height:1.35}
+  .ev .r{font-size:10.5px;color:var(--muted);text-transform:uppercase;line-height:1.35}
+  .ev.T{--b:var(--teo)} .ev.P{--b:var(--pra)}
+  .tesis{--c:var(--tesis)} .aya{--c:var(--aya)} .promo{--c:var(--promo)} .seg{--c:var(--seg)}
+  .hint{font-size:12px;color:var(--muted);margin-top:12px}
+
+  .overlay{position:fixed;inset:0;background:rgba(25,25,35,.4);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .18s;z-index:50}
+  .overlay.open{opacity:1;pointer-events:auto}
+  .modal{background:#fff;width:100%;max-width:440px;max-height:calc(100vh - 32px);overflow:auto;border-radius:14px;box-shadow:0 30px 60px -20px rgba(0,0,0,.4);transform:translateY(10px) scale(.98);transition:transform .2s}
+  .overlay.open .modal{transform:none}
+  .m-top{padding:22px 56px 18px 22px;border-top:6px solid var(--c);position:relative;border-bottom:1px solid #f0f0f2}
+  .code{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--c)}
+  .pill{display:inline-block;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;margin-left:8px;color:#fff;background:var(--pra);vertical-align:1px}
+  .pill.T{background:#d9f6f8;color:#11656c}
+  .m-top h2{font-size:17px;font-weight:600;line-height:1.35;margin-top:8px;text-transform:uppercase}
+  .close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;border:none;background:#f3f3f5;cursor:pointer;font-size:18px;color:var(--ink)}
+  .close:hover{background:#e9e9ec}
+  .m-body{padding:6px 22px 20px;display:grid;grid-template-columns:1fr 1fr;column-gap:20px}
+  .f{padding:12px 0;border-bottom:1px solid #f0f0f2}
+  .f.full{grid-column:1/-1}
+  .f .k{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .f .v{font-size:13.5px;font-weight:500}
+  .f:last-child{border-bottom:none}
+
+  @media print{
+    @page{size:A4 landscape;margin:8mm}
+    body{padding:0} .print,.hint,.overlay{display:none!important}
+    :root{--row:22px} .scroller{overflow:visible} .cal{min-width:0}
+    .ev{padding:4px 6px 4px 20px} .ev::before{left:7px;top:8px}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Horario semanal <span>Semana del 05 al 11 de octubre de 2026</span></h1>
+    <div class="legend" id="legend"></div>
+    <button class="print" onclick="window.print()">Imprimir / PDF</button>
+  </div>
+  <div class="scroller"><div class="cal" id="cal"></div></div>
+  <p class="hint">Toca cualquier clase para ver el curso, salón, tipo y profesor.</p>
+</div>
+
+<div class="overlay" id="ov" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="modal">
+    <div class="m-top">
+      <span class="code" id="mCode"></span><span class="pill" id="mType"></span>
+      <h2 id="mTitle"></h2>
+      <button class="close" id="mClose" aria-label="Cerrar">×</button>
+    </div>
+    <div class="m-body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+  const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
+  const DATES = ["05/10/2026","06/10/2026","07/10/2026","08/10/2026","09/10/2026","10/10/2026","11/10/2026"];
+  const START = 7, END = 19;
+
+  const COURSES = {
+    tesis: {code:"S501141", name:"Tesis II", short:"Tesis II"},
+    aya:   {code:"S501129", name:"Cuidados de Enfermería en Salud del Adulto y del Anciano II", short:"Adulto y Anciano II"},
+    promo: {code:"S501130", name:"Cuidados de Enfermería en la Promoción y Educación para la Salud", short:"Promoción y Educación para la Salud"},
+    seg:   {code:"S501118", name:"Cuidados de Enfermería en Seguridad en el Trabajo", short:"Seguridad en el Trabajo"}
+  };
+  const TYPES = {T:"Teoría", P:"Práctica"};
+
+  // [día (0 = lunes), curso, sección, tipo, inicio, fin, salón, profesor]
+  const CLASSES = [
+    [0,"tesis","A","T",7,9,"Pabellón J - 2","Saldarriaga Sandoval, Lilia Jannet"],
+    [0,"aya","A","P",9,13,"Lab. de Cuidado de Enfermería del Adulto y Anciano","Contratados"],
+    [0,"tesis","A","P",14,18,"Laboratorio de Cómputo de Enfermería","Saldarriaga Sandoval, Lilia Jannet"],
+    [1,"seg","1","T",14,15,"Pabellón J - 3","Mariños Vega, Julia Eulalia"],
+    [2,"promo","A","T",7,9,"Pabellón J - 1","Guevara Herbias, Bedie Olinda"],
+    [2,"seg","1","P",9,13,"Laboratorio de Salud Ocupacional","Mariños Vega, Julia Eulalia"],
+    [2,"aya","A","P",14,18,"Cent Ext Enf 09ALU - 03","Contratados"],
+    [3,"aya","A","P",7,11,"Cent Ext Enf 09ALU - 01","Contratados"],
+    [3,"aya","A","T",14,16,"Pabellón J - 4","Contratados"],
+    [4,"promo","A","P",7,11,"Cent Ext Obst 15ALU - 05","Guevara Herbias, Bedie Olinda"]
+  ];
+
+  const hm = (h, full) => { const ap = h < 12 ? "AM" : "PM"; const x = h % 12 || 12; return full ? `${x}:00 ${ap}` : `${x}${ap}`; };
+  const row = h => 2 + (h - START) * 2;
+  const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  // día de hoy (si cae dentro de la semana)
+  const now = new Date();
+  const todayStr = String(now.getDate()).padStart(2,"0")+"/"+String(now.getMonth()+1).padStart(2,"0")+"/"+now.getFullYear();
+  const todayIdx = DATES.indexOf(todayStr);
+
+  document.getElementById("legend").innerHTML =
+    Object.entries(COURSES).map(([k,c]) => `<span><i style="background:var(--${k})"></i>${c.short}</span>`).join("") +
+    `<span><i class="box" style="border:2px solid var(--teo)"></i>Teoría</span><span><i class="box" style="border:2px solid var(--pra)"></i>Práctica</span>`;
+
+  let html = `<div class="head corner"></div>` + DAYS.map((d,i) =>
+    `<div class="head ${i===todayIdx?"is-today":""}">${d}<small>${i===todayIdx?"Hoy · ":""}${DATES[i].slice(0,5)}</small></div>`).join("");
+  for (let i = 0; i < (END-START)*2; i++) {
+    const isHour = i % 2 === 0, r = i + 2, f = i === 0 ? " first" : "";
+    html += `<div class="time ${isHour?"":"half"}${f}" style="grid-row:${r};grid-column:1">${isHour ? hm(START+i/2,true).replace(" ","") : ""}</div>`;
+    for (let c = 2; c <= 8; c++) html += `<div class="cell ${isHour?"hour":"half"}${f}" style="grid-row:${r};grid-column:${c}"></div>`;
+  }
+  if (todayIdx >= 0 && todayIdx < 6) html += `<div class="shade today" style="grid-column:${todayIdx+2}"></div>`;
+  html += `<div class="shade off" style="grid-column:8"></div>`;
+  CLASSES.forEach(([d,k,sec,t,s,e,room], i) => {
+    html += `<button class="ev ${k} ${t}" data-i="${i}" style="grid-column:${d+2};grid-row:${row(s)}/${row(e)}" aria-label="${esc(COURSES[k].name)}, ${DAYS[d]} ${hm(s,true)} a ${hm(e,true)}">
+      <span class="h">${hm(s)} - ${hm(e)}</span>
+      <span class="n">${COURSES[k].code} ${esc(COURSES[k].name)} (${sec})</span>
+      <span class="r">${esc(room)}</span></button>`;
+  });
+  document.getElementById("cal").innerHTML = html;
+
+  const ov = document.getElementById("ov"), modal = document.getElementById("modal");
+  let last = null;
+  function open(i, btn){
+    const [d,k,sec,t,s,e,room,prof] = CLASSES[i], c = COURSES[k];
+    last = btn;
+    modal.className = "modal " + k;
+    document.getElementById("mCode").textContent = c.code;
+    const p = document.getElementById("mType"); p.textContent = TYPES[t]; p.className = "pill " + t;
+    document.getElementById("mTitle").textContent = c.name;
+    const f = (k,v,full) => `<div class="f ${full?"full":""}"><span class="k">${k}</span><span class="v">${esc(v)}</span></div>`;
+    document.getElementById("mBody").innerHTML =
+      f("Día", DAYS[d]) + f("Fecha", DATES[d]) +
+      f("Empieza", hm(s,true)) + f("Termina", hm(e,true)) +
+      f("Sección", sec) + f("Tipo", TYPES[t]) +
+      f("Salón", room, true) + f("Profesor(es)", prof, true);
+    ov.classList.add("open"); ov.setAttribute("aria-hidden","false");
+    document.getElementById("mClose").focus();
+  }
+  function close(){ ov.classList.remove("open"); ov.setAttribute("aria-hidden","true"); if (last) last.focus(); }
+  document.getElementById("cal").addEventListener("click", ev => { const b = ev.target.closest(".ev"); if (b) open(+b.dataset.i, b); });
+  document.getElementById("mClose").addEventListener("click", close);
+  ov.addEventListener("click", ev => { if (ev.target === ov) close(); });
+  document.addEventListener("keydown", ev => { if (ev.key === "Escape" && ov.classList.contains("open")) close(); });
+</script>
+</body>
+</html>
